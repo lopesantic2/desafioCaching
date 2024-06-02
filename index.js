@@ -52,11 +52,15 @@ app.get('/', (req, res) => {
 app.get('/clientes', clientesController.getAll);
 app.get('/clientes/:id', clientesController.getById);
 app.post('/clientes', clientesController.create); // Rota para criar um novo cliente
+app.put('/clientes/:id', clientesController.update); // Rota para atualizar um cliente
+app.delete('/clientes/:id', clientesController.remove); // Rota para remover um cliente
 
 // Rotas para produtos
 app.get('/produtos', produtosController.getAll);
 app.get('/produtos/:id', produtosController.getById);
 app.post('/produtos', produtosController.create);
+app.put('/produtos/:id', produtosController.update);
+app.delete('/produtos/:id', produtosController.remove);
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {

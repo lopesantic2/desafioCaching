@@ -33,6 +33,7 @@ const createProdutosTable = async () => {
     `);
 };
 
+
 // Crie as tabelas apenas se elas não existirem
 const createTables = async () => {
     try {
