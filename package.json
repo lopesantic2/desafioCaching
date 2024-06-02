@@ -1,0 +1,30 @@
+{
+  "name": "desafioexpressmysql",
+  "version": "1.0.0",
+  "description": "Projeto Node.js com MySQL",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.5",
+    "debug": "^4.3.2",
+    "dotenv": "^10.0.0",
+    "express": "^4.19.2",
+    "express-validator": "^7.0.1",
+    "http-errors": "^1.8.0",
+    "jade": "^0.29.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.9.8",
+    "node-cache": "^5.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-config-google": "^0.14.0",
+    "nodemon": "^3.1.1"
+  },
+  "author": "Willian",
+  "license": "MIT"
+}
