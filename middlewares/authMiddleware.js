@@ -1,14 +1,18 @@
-const authMiddleware = (req, res, next) => {
-    // Aqui você deve implementar a lógica de verificação de autenticação
-    const isAuthenticated = true; // Exemplo: verificar se existe um token válido
-  
-    if (!isAuthenticated) {
-        return res.status(401).json({ message: 'Unauthorized' });
+// authMiddleware.js
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
+
+exports.verifyToken = (req, res, next) => {
+  const token = req.headers['authorization'];
+  console.log('Token recebido:', token);
+  if (!token) return res.status(403).send('Token is required');
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.log('Erro ao verificar token:', err);
+      return res.status(401).send('Failed to authenticate token');
     }
-  
+    req.userId = decoded.id;
     next();
-};
-  
-module.exports = {
-    authMiddleware
+  });
 };

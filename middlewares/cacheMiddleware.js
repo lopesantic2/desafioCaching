@@ -1,40 +1,29 @@
-const express = require('express');
 const NodeCache = require('node-cache');
-const app = express();
-const cache = new NodeCache();
+const cache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Cache com TTL padrão de 30 segundos e verificação de expiração a cada 60 segundos
 
 // Middleware de caching
 function cacheMiddleware(req, res, next) {
-    // Usando a URL como chave de cache
-    const chave = req.originalUrl;
-    // Tenta obter os dados do cache
-    const dadosCache = cache.get(chave);
-    if (dadosCache !== undefined) {
-    // Envia a resposta com os dados do cache, se existirem
+  const chave = req.originalUrl;
+  const dadosCache = cache.get(chave);
+  if (dadosCache !== undefined) {
     console.log("Dados recuperados do cache para a URL:", chave);
     res.send(dadosCache);
-    } else {
-    // Continua com a próxima função de middleware
+  } else {
     console.log("Dados não encontrados no cache para a URL:", chave);
-    next();
-    }
-   }
-
-   // Rota de exemplo com caching
-app.get('/dados', cacheMiddleware, (req, res) => {
-    // Simula uma consulta ao banco de dados
-    const dados = {
-    id: 1,
-    nome: 'Exemplo'
+    res.sendResponse = res.send;
+    res.send = (body) => {
+      cache.set(chave, body);
+      res.sendResponse(body);
     };
-    // Salva os dados no cache com uma duração de 10 segundos
-    cache.set(req.originalUrl, dados, 10);
-    // Envia os dados como resposta
-    res.send(dados);
-   });
-   
-   // Inicia o servidor Express
-const PORT = process.env.PORT || 3090;
-app.listen(PORT, () => {
- console.log(`Servidor rodando na porta ${PORT}`);
-});
+    next();
+  }
+}
+
+// Função para invalidar o cache
+function invalidateCache(req, res, next) {
+  console.log("Cache invalidado");
+  cache.flushAll();
+  next();
+}
+
+module.exports = { cacheMiddleware, invalidateCache };

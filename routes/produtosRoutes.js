@@ -1,16 +1,13 @@
-// produtosRoutes.js
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middlewares/authMiddleware');
 const { validateFields } = require('../middlewares/validateFields');
-const { getAllProdutos, getProdutoById, createProduto, updateProduto, deleteProduto } = require('../controllers/produtosController');
+const { getAll, getById, create, update, remove } = require('../controllers/produtosController');
 
-router.use(authMiddleware);
-
-router.get('/', getAllProdutos);
-router.get('/:id', getProdutoById);
-router.post('/', validateFields, createProduto);
-router.put('/:id', validateFields, updateProduto);
-router.delete('/:id', deleteProduto);
+// Definindo as rotas com os respectivos controladores e middlewares
+router.get('/', getAll);
+router.get('/:id', getById);
+router.post('/', validateFields, create);
+router.put('/:id', validateFields, update);
+router.delete('/:id', remove);
 
 module.exports = router;

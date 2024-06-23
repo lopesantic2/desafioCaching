@@ -1,16 +1,18 @@
-// clientesRoutes.js
 const express = require('express');
 const router = express.Router();
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const { verifyToken } = require('../middlewares/authMiddleware');
 const { validateFields } = require('../middlewares/validateFields');
-const { getAllClientes, getClienteById, createCliente, updateCliente, deleteCliente } = require('../controllers/clientesController');
+const { cacheMiddleware, invalidateCache } = require('../middlewares/cacheMiddleware');
+const { getAll, getById, create, update, remove } = require('../controllers/clientesController');
 
-router.use(authMiddleware);
+// Middleware para verificar o token
+router.use(verifyToken);
 
-router.get('/', getAllClientes);
-router.get('/:id', getClienteById);
-router.post('/', validateFields, createCliente);
-router.put('/:id', validateFields, updateCliente);
-router.delete('/:id', deleteCliente);
+// Definindo as rotas com os respectivos controladores e middlewares
+router.get('/', cacheMiddleware, getAll);
+router.get('/:id', cacheMiddleware, getById);
+router.post('/', validateFields, invalidateCache, create);
+router.put('/:id', validateFields, invalidateCache, update);
+router.delete('/:id', invalidateCache, remove);
 
 module.exports = router;

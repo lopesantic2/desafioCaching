@@ -1,8 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
-const clientesController = require('./controllers/clientesController');
-const produtosController = require('./controllers/produtosController');
+const jwt = require('jsonwebtoken');
+const clientesRoutes = require('./routes/clientesRoutes');
+const produtosRoutes = require('./routes/produtosRoutes');
+const { authMiddleware } = require('./middlewares/authMiddleware');
+const { invalidateCache } = require('./middlewares/cacheMiddleware');
 
 const app = express();
 const port = 3090;
@@ -14,33 +17,6 @@ const dbConfig = {
     database: process.env.DB_NAME
 };
 
-// Importar o pacote node-cache
-const NodeCache = require('node-cache');
-
-// Criar uma nova instância de cache
-const cache = new NodeCache();
-
-// Adicionar um item ao cache com uma chave e um valor
-cache.set('chave', 'valor');
-
-// Obter o valor do cache com a chave
-const valor = cache.get('chave');
-console.log('Valor do cache:', valor);
-
-// 60 segundos de tempo de vida
-cache.set('chave2', 'valor2', 60); 
-
-// Remove iten do Cache
-cache.del('chave');
-
-// Apaga todo o Caching
-cache.flushAll();
-
-
-
-
-
-
 // Middleware para parsing de JSON
 app.use(express.json());
 
@@ -48,19 +24,28 @@ app.get('/', (req, res) => {
     res.send('Bem Vindo a minha Aplicação!');
 });
 
-// Rotas para clientes
-app.get('/clientes', clientesController.getAll);
-app.get('/clientes/:id', clientesController.getById);
-app.post('/clientes', clientesController.create); // Rota para criar um novo cliente
-app.put('/clientes/:id', clientesController.update); // Rota para atualizar um cliente
-app.delete('/clientes/:id', clientesController.remove); // Rota para remover um cliente
+// Rota de login para gerar token
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'admin' && password === 'admin') {
+        const user = { id: 1, username: 'admin' };
+        const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
+        res.json({ token });
+    } else {
+        res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+});
 
-// Rotas para produtos
-app.get('/produtos', produtosController.getAll);
-app.get('/produtos/:id', produtosController.getById);
-app.post('/produtos', produtosController.create);
-app.put('/produtos/:id', produtosController.update);
-app.delete('/produtos/:id', produtosController.remove);
+// Rota de logout para invalidar token
+app.post('/logout', (req, res) => {
+    res.json({ message: 'Logout realizado com sucesso' });
+});
+
+// Rotas para clientes (com autenticação JWT)
+app.use('/clientes', clientesRoutes);
+
+// Rotas para produtos (sem autenticação JWT)
+app.use('/produtos', produtosRoutes);
 
 // Middleware de tratamento de erros
 app.use((err, req, res, next) => {
@@ -68,7 +53,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Algo deu errado!' });
 });
 
-(async () => {
+const startServer = async () => {
     try {
         const connection = await mysql.createConnection(dbConfig);
         console.log('Connected to MySQL database');
@@ -80,4 +65,10 @@ app.use((err, req, res, next) => {
         console.error('Error connecting to MySQL database:', err);
         process.exit(1);
     }
-})();
+};
+
+if (process.env.NODE_ENV !== 'test') {
+    startServer();
+}
+
+module.exports = app;

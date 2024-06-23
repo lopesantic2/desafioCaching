@@ -1,72 +1,101 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
-const produtosController = require('./controllers/produtosController');
+const bodyParser = require('body-parser');
 const NodeCache = require('node-cache');
-const fs = require('fs');
-const app = express();
+const produtosController = require('./controllers/produtosController');
 const cache = new NodeCache();
 
+const app = express();
 
+// Middleware para parsing de JSON
+app.use(bodyParser.json());
+
+const dbConfig = {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME
+};
+
+// Middleware de caching
 function cacheMiddleware(req, res, next) {
     const chaveCache = 'produtos';
-
-    // Verifica se os produtos estão no cache
     const produtosCache = cache.get(chaveCache);
-    if (produtosCache !== undefined) {
-    console.log('Produtos recuperados do cache');
-    res.json(produtosCache); // Retorna do cache
-    } else {
-    console.log('Produtos não encontrados no cache');
-    // Salva os produtos no cache
-    cache.set(chaveCache, produtos, 300); // Cache 5m
-    res.json(produtos); // Retorna os produtos
-    }
-   }
 
-   app.post('/produtos', (req, res) => {
-    const novoProduto = { id: produtos.length + 1, nome: 'Novo Produto', preco: 15.00 };
-    produtos.push(novoProduto);
-    cache.del('produtos');
-    console.log('Novo produto adicionado:', novoProduto);
-    res.json({ message: 'Novo produto adicionado com sucesso' });
-   });
-   app.delete('/produtos/:id', (req, res) => {
-    const { id } = req.params;
-    const index = produtos.findIndex(produto => produto.id === parseInt(id));
-    if (index !== -1) {
-    produtos.splice(index, 1);
-    cache.del('produtos');
-    console.log('Produto removido:', id);
-    res.json({ message: 'Produto removido com sucesso' });
+    if (produtosCache) {
+        console.log('Produtos recuperados do cache');
+        return res.json(produtosCache);
     } else {
-    res.status(404).json({ error: 'Produto não encontrado' });
+        next();
     }
-   });   
+}
 
-   
-   // Rota para buscar todos os produtos
-app.get('/produtos', cacheMiddleware);
+// Rota para buscar todos os produtos com middleware de caching
+app.get('/produtos', cacheMiddleware, async (req, res) => {
+    try {
+        const produtos = await produtosController.getAllProdutos();
+        cache.set('produtos', produtos, 300); // Cache por 5 minutos
+        res.json(produtos);
+    } catch (err) {
+        console.error('Erro ao buscar produtos:', err);
+        res.status(500).json({ error: 'Erro ao buscar produtos' });
+    }
+});
+
+// Rota para adicionar um novo produto
+app.post('/produtos', async (req, res) => {
+    const { nome, descricao, preco, data_atualizado } = req.body;
+    try {
+        const novoProduto = await produtosController.createProduto(nome, descricao, preco, data_atualizado);
+        cache.del('produtos');
+        console.log('Novo produto adicionado:', novoProduto);
+        res.json({ message: 'Novo produto adicionado com sucesso', produto: novoProduto });
+    } catch (err) {
+        console.error('Erro ao adicionar produto:', err);
+        res.status(500).json({ error: 'Erro ao adicionar produto' });
+    }
+});
+
+// Rota para atualizar um produto
+app.put('/produtos/:id', async (req, res) => {
+    const idProduto = parseInt(req.params.id);
+    const { nome, descricao, preco, data_atualizado } = req.body;
+    try {
+        const produtoAtualizado = await produtosController.updateProduto(idProduto, nome, descricao, preco, data_atualizado);
+        if (produtoAtualizado) {
+            cache.del('produtos');
+            console.log('Produto atualizado:', produtoAtualizado);
+            res.json({ message: 'Produto atualizado com sucesso', produto: produtoAtualizado });
+        } else {
+            res.status(404).json({ error: 'Produto não encontrado' });
+        }
+    } catch (err) {
+        console.error('Erro ao atualizar produto:', err);
+        res.status(500).json({ error: 'Erro ao atualizar produto' });
+    }
+});
+
+// Rota para remover um produto
+app.delete('/produtos/:id', async (req, res) => {
+    const idProduto = parseInt(req.params.id);
+    try {
+        const produtoRemovido = await produtosController.deleteProduto(idProduto);
+        if (produtoRemovido) {
+            cache.del('produtos');
+            console.log('Produto removido:', idProduto);
+            res.json({ message: 'Produto removido com sucesso' });
+        } else {
+            res.status(404).json({ error: 'Produto não encontrado' });
+        }
+    } catch (err) {
+        console.error('Erro ao remover produto:', err);
+        res.status(500).json({ error: 'Erro ao remover produto' });
+    }
+});
+
 // Inicia o servidor
 const PORT = process.env.PORT || 3090;
 app.listen(PORT, () => {
- console.log(`Servidor rodando na porta ${PORT}`);
-});
-
-app.put('/produto/:id', (req, res) => {
-    const idProduto = parseInt(req.params.id);
-    const novoNome = req.body.nome;
-    const novoPreco = parseFloat(req.body.preco);
-
-     // Atualiza o produto na lista de produtos
-   const produtoAtualizado = produtos.find(produto => produto.id === idProduto);
-   if (produtoAtualizado) {
-   produtoAtualizado.nome = novoNome;
-   produtoAtualizado.preco = novoPreco;
-   const chaveCache = 'produtos';
-   cache.del(chaveCache);
-   res.json(produtoAtualizado);
-   } else {
-   res.status(404).send('Não encontrado');
-   }
-
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
