@@ -1,15 +1,15 @@
 const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Cache com TTL padrão de 30 segundos e verificação de expiração a cada 60 segundos
+const cache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Cache com TTL de 30 segundos e verificação a cada 60 segundos
 
 // Middleware de caching
 function cacheMiddleware(req, res, next) {
   const chave = req.originalUrl;
   const dadosCache = cache.get(chave);
   if (dadosCache !== undefined) {
-    console.log("Dados recuperados do cache para a URL:", chave);
+    console.log(`Cache hit for ${chave}`);
     res.send(dadosCache);
   } else {
-    console.log("Dados não encontrados no cache para a URL:", chave);
+    console.log(`Cache miss for ${chave}`);
     res.sendResponse = res.send;
     res.send = (body) => {
       cache.set(chave, body);
@@ -21,7 +21,7 @@ function cacheMiddleware(req, res, next) {
 
 // Função para invalidar o cache
 function invalidateCache(req, res, next) {
-  console.log("Cache invalidado");
+  console.log("Invalidating cache");
   cache.flushAll();
   next();
 }
