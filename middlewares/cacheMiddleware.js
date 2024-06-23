@@ -1,7 +1,6 @@
 const NodeCache = require('node-cache');
-const cache = new NodeCache({ stdTTL: 30, checkperiod: 60 }); // Cache com TTL de 30 segundos e verificação a cada 60 segundos
+const cache = new NodeCache({ stdTTL: 30, checkperiod: 60 });
 
-// Middleware de caching
 function cacheMiddleware(req, res, next) {
   const chave = req.originalUrl;
   const dadosCache = cache.get(chave);
@@ -19,7 +18,6 @@ function cacheMiddleware(req, res, next) {
   }
 }
 
-// Função para invalidar o cache
 function invalidateCache(req, res, next) {
   console.log("Invalidating cache");
   cache.flushAll();
